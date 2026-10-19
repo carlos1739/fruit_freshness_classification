@@ -31,7 +31,6 @@ laporan/
 video/README.md
 docs/
   pembagian_tugas.md
-  panduan_github.md
 ```
 
 ## Cara menjalankan
