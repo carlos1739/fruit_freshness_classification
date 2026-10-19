@@ -1,0 +1,8 @@
+jupyter
+matplotlib
+numpy
+pandas
+Pillow
+scikit-learn
+seaborn
+tensorflow>=2.16
