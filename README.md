@@ -35,7 +35,18 @@ docs/
 
 ## Cara menjalankan
 
-Pastikan Python 3.10 atau lebih baru dan Git sudah terpasang. Setelah clone repositori, buka terminal di folder utama proyek. Setiap anggota membuat virtual environment sendiri (`.venv` tidak disertakan di GitHub) dan menginstal semua pustaka yang tercantum di `requirements.txt`:
+Pastikan Python 3.10 atau lebih baru, Git, dan Git LFS sudah terpasang. Clone repositori, lalu unduh file dataset yang dilacak Git LFS:
+
+```powershell
+git lfs install
+git clone https://github.com/carlos1739/fruit_freshness_classification.git
+cd NAMA-REPOSITORY
+git lfs pull
+```
+
+Ganti URL repositori dan nama folder sesuai proyek tim. `git lfs pull` mengunduh ZIP dataset ke `data/raw/`; unduhannya menggunakan kuota bandwidth Git LFS pemilik repositori.
+
+Setiap anggota membuat virtual environment sendiri (`.venv` tidak disertakan di GitHub) dan menginstal pustaka dari `requirements.txt`:
 
 ```powershell
 py -m venv .venv
