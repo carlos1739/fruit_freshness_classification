@@ -7,7 +7,7 @@ Repositori ini berisi kode, data, model, dan hasil proyek klasifikasi kesegaran 
 | Anggota | Tugas |
 |---|---|
 | Carlos Leonardo J. Dongoran | Sementara mengerjakan persiapan dan eksplorasi awal notebook |
-| Percaya Mendrova | Praproses  pembagian data |
+| Percaya Mendrova | Praproses, pembagian data , dan normalisasi |
 | Matthew Rivandi | Belum ditentukan |
 | Joni Fernando | Belum ditentukan |
 | Yohanes Cornelius Willfredi Simanjuntak | Belum ditentukan |
