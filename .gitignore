@@ -20,6 +20,9 @@ data/raw/*
 !data/raw/*.zip
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/split.csv
+!data/processed/gambar_dibuang.csv
+!data/processed/bobot_kelas.json
 models/*
 !models/.gitkeep
 
