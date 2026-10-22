@@ -44,8 +44,6 @@ cd NAMA-REPOSITORY
 git lfs pull
 ```
 
-Ganti URL repositori dan nama folder sesuai proyek tim. `git lfs pull` mengunduh ZIP dataset ke `data/raw/`; unduhannya menggunakan kuota bandwidth Git LFS pemilik repositori.
-
 Setiap anggota membuat virtual environment sendiri (`.venv` tidak disertakan di GitHub) dan menginstal pustaka dari `requirements.txt`:
 
 ```powershell
