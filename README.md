@@ -8,7 +8,7 @@ Repositori ini berisi kode, data, model, dan hasil proyek klasifikasi kesegaran 
 |---|---|
 | Carlos Leonardo J. Dongoran | Sementara mengerjakan persiapan dan eksplorasi awal notebook |
 | Percaya Mendrova | Praproses, pembagian data , dan normalisasi |
-| Matthew Rivandi | Belum ditentukan |
+| Matthew Rivandi | input pipeline tf.data dan demo tensor |
 | Joni Fernando | Belum ditentukan |
 | Yohanes Cornelius Willfredi Simanjuntak | Belum ditentukan |
 
