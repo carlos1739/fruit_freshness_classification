@@ -7,12 +7,12 @@ Repositori ini berisi kode, data, model, dan hasil proyek klasifikasi kesegaran 
 | Anggota | Tugas |
 |---|---|
 | Carlos Leonardo J. Dongoran | Sementara mengerjakan persiapan dan eksplorasi awal notebook |
-| Percaya Mendrova | Praproses, pembagian data , dan normalisasi |
-| Matthew Rivandi | input pipeline tf.data dan demo tensor |
-| Joni Fernando | Belum ditentukan |
-| Yohanes Cornelius Willfredi Simanjuntak | Belum ditentukan |
+| Percaya Mendrova | Praproses, pembagian data, dan normalisasi |
+| Matthew Rivandi | Input pipeline `tf.data` dan demo tensor |
+| Joni Fernando | Merancang, melatih, dan menyimpan model klasifikasi ke `models/` |
+| Yohanes Cornelius Willfredi Simanjuntak | Mengevaluasi model pada data uji (accuracy, precision, recall, F1-score, confusion matrix), membuat visualisasi, dan menyusun ringkasan evaluasi |
 
-Pembagian tugas selain pekerjaan sementara Carlos akan ditetapkan kemudian. Lihat [`docs/pembagian_tugas.md`](docs/pembagian_tugas.md).
+Joni mulai setelah input pipeline siap; Yohanes mengevaluasi model yang sudah dilatih. Rincian ada di [`docs/pembagian_tugas.md`](docs/pembagian_tugas.md).
 
 ## Struktur proyek
 
