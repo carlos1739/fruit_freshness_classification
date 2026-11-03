@@ -1,0 +1,5 @@
+Percobaan,Parameter,Epoch terbaik,Epoch berjalan,Akurasi train,Akurasi val,Loss val,Selisih train-val,Waktu (menit)
+1. MLP (baseline),38570384,11,16,0.7014,0.6484,1.0919,0.053,5.4
+2. CNN dasar,3454288,18,20,0.9304,0.8526,0.4331,0.0778,12.2
+3. CNN + BatchNorm + Dropout,3455344,1,6,0.0754,0.0632,2.7933,0.0123,7.4
+4. CNN + BatchNorm + Dropout + Aug,3455344,1,6,0.0903,0.0632,2.7818,0.0272,7.3
