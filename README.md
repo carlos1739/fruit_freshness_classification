@@ -6,13 +6,13 @@ Repositori ini berisi kode, data, model, dan hasil proyek klasifikasi kesegaran 
 
 | Anggota | Tugas |
 |---|---|
-| Carlos Leonardo J. Dongoran | Sementara mengerjakan persiapan dan eksplorasi awal notebook |
-| Percaya Mendrova | Praproses, pembagian data , dan normalisasi |
-| Matthew Rivandi | input pipeline tf.data dan demo tensor |
-| Joni Fernando | Belum ditentukan |
-| Yohanes Cornelius Willfredi Simanjuntak | Belum ditentukan |
+| Carlos Leonardo J. Dongoran | Persiapan notebook dan EDA: memuat dataset, menghitung jumlah gambar per kelas, memeriksa resolusi/format, dan menampilkan contoh gambar (bagian 1-5) |
+| Percaya Mendrova | Praproses data: memeriksa gambar rusak, mendeteksi duplikat, memeriksa ketimpangan kelas, membagi data train/val/test, memeriksa kebocoran, dan menyimpan hasil (bagian 6-12) |
+| Matthew Rivandi | Membuat input pipeline `tf.data`, memeriksa hasil pemuatan/batch, dan menyiapkan demo tensor (bagian 13) |
+| Joni Fernando | Membuat baseline DNN dan model CNN, melatih keduanya dengan data train/validasi, lalu menyimpan model ke `models/` (belum dikerjakan) |
+| Yohanes Cornelius Willfredi Simanjuntak | Mengevaluasi dan membandingkan DNN/CNN pada data test menggunakan accuracy, precision, recall, F1-score, dan confusion matrix; membuat visualisasi serta ringkasan hasil (menunggu model selesai) |
 
-Pembagian tugas selain pekerjaan sementara Carlos akan ditetapkan kemudian. Lihat [`docs/pembagian_tugas.md`](docs/pembagian_tugas.md).
+Joni mulai setelah input pipeline siap; Yohanes mengevaluasi model yang sudah dilatih tanpa memakai data test untuk memilih model. Rincian ada di [`docs/pembagian_tugas.md`](docs/pembagian_tugas.md).
 
 ## Struktur proyek
 
