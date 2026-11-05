@@ -39,8 +39,12 @@ jobs:
             echo "HF_SPACE_ID must have the form username/space-name."
             exit 1
           fi
-          if [[ -n "$RENDER_API_URL" && ! "$RENDER_API_URL" =~ ^https:// ]]; then
-            echo "RENDER_API_URL must be an HTTPS URL when configured."
+          if [[ -z "$RENDER_API_URL" ]]; then
+            echo "Configure the RENDER_API_URL Actions variable with the public API URL."
+            exit 1
+          fi
+          if [[ ! "$RENDER_API_URL" =~ ^https:// ]]; then
+            echo "RENDER_API_URL must be an HTTPS URL."
             exit 1
           fi
           if [[ ! -s models/model_terbaik.keras || ! -s models/model_terbaik_info.json ]]; then
