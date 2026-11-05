@@ -198,8 +198,6 @@ class _ClassifierPageState extends State<ClassifierPage> {
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 28),
-                  _buildModelNotice(),
-                  const SizedBox(height: 20),
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isWide = constraints.maxWidth >= 680;
@@ -269,31 +267,6 @@ class _ClassifierPageState extends State<ClassifierPage> {
           style: TextStyle(color: Colors.black54, fontSize: 15, height: 1.5),
         ),
       ],
-    );
-  }
-
-  Widget _buildModelNotice() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF5DF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF2D99F)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: Color(0xFF8A5A00)),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Demo penelitian: checkpoint yang tersedia adalah MLP baseline '
-              'dengan akurasi validasi 58,95%. Prediksi masih dapat keliru.',
-              style: TextStyle(color: Color(0xFF654300), height: 1.45),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
