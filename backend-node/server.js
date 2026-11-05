@@ -5,13 +5,10 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import multer from "multer";
 import sharp from "sharp";
-import * as tf from "@tensorflow/tfjs";
+import * as ort from "onnxruntime-node";
 import cors from "cors";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MODEL_DIR = path.resolve(
-  process.env.TFJS_MODEL_DIR ?? path.join(ROOT, "models", "model_tfjs"),
-);
 const INFO_PATH = path.join(ROOT, "models", "model_terbaik_info.json");
 const IMAGE_SIZE = 224;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -36,53 +33,13 @@ const upload = multer({
 
 let classifier;
 
-async function loadTfjsModel() {
-  const modelJson = JSON.parse(
-    await fs.readFile(path.join(MODEL_DIR, "model.json"), "utf8"),
+async function loadOnnxModel() {
+  const model = await ort.InferenceSession.create(
+    path.join(ROOT, "models", "model_mobilenet.onnx"),
+    { executionProviders: ["cpu"] },
   );
-  const modelTopology = modelJson.modelTopology;
-  const normalizeInputLayers = (value) => {
-    if (Array.isArray(value)) {
-      value.forEach(normalizeInputLayers);
-      return;
-    }
-    if (!value || typeof value !== "object") return;
-
-    if (
-      value.class_name === "InputLayer" &&
-      value.config?.batch_shape &&
-      !value.config.batchInputShape
-    ) {
-      value.config.batchInputShape = value.config.batch_shape;
-      delete value.config.batch_shape;
-    }
-    Object.values(value).forEach(normalizeInputLayers);
-  };
-  normalizeInputLayers(modelTopology);
-  const weightSpecs = modelJson.weightsManifest.flatMap((manifest) =>
-    manifest.weights,
-  );
-  const weightBuffers = await Promise.all(
-    modelJson.weightsManifest.flatMap((manifest) =>
-      manifest.paths.map((weightPath) =>
-        fs.readFile(path.join(MODEL_DIR, weightPath)),
-      ),
-    ),
-  );
-  const weightData = Buffer.concat(weightBuffers);
-  const model = await tf.loadLayersModel(
-    tf.io.fromMemory({
-      modelTopology,
-      weightSpecs,
-      weightData,
-    }),
-  );
-
-  if (
-    model.inputs[0].shape.join(",") !==
-    [null, IMAGE_SIZE, IMAGE_SIZE, 3].join(",")
-  ) {
-    throw new Error(`Unexpected model input shape: ${model.inputs[0].shape}`);
+  if (model.inputNames.length !== 1 || model.outputNames.length !== 1) {
+    throw new Error("ONNX model must have one input and one output.");
   }
   return model;
 }
@@ -100,7 +57,7 @@ async function loadAssets() {
     throw new Error("Model class indices must be contiguous and start at zero.");
   }
   classifier = {
-    model: await loadTfjsModel(),
+    model: await loadOnnxModel(),
     classNames,
     info,
   };
@@ -150,14 +107,18 @@ app.post("/api/predict", upload.single("file"), async (request, response) => {
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const probabilities = tf.tidy(() => {
-      const input = tf.tensor4d(
-        Array.from(data, (value) => Math.round(value) / 255),
-        [1, IMAGE_SIZE, IMAGE_SIZE, 3],
+    const inputData = Float32Array.from(
+      data,
+      (value) => Math.round(value) / 255,
+    );
+    const output = await classifier.model.run({
+      [classifier.model.inputNames[0]]: new ort.Tensor(
         "float32",
-      );
-      return classifier.model.predict(input).dataSync();
+        inputData,
+        [1, IMAGE_SIZE, IMAGE_SIZE, 3],
+      ),
     });
+    const probabilities = output[classifier.model.outputNames[0]].data;
     if (probabilities.length !== classifier.classNames.length) {
       throw new Error("Model output does not match class metadata.");
     }

@@ -5,26 +5,24 @@ This backend keeps the same API contract as the Python backend:
 - `GET /api/health`
 - `POST /api/predict` with multipart field `file`
 
-Node.js cannot load `models/model_terbaik.keras` directly. Convert it once on a
+Node.js cannot load `models/model_mobilenet.keras` directly. Convert it once on a
 machine that can run TensorFlow:
 
 ```powershell
-python -m pip install tensorflow==2.21.0 tensorflowjs==4.22.0
-python backend-node/convert_model.py
+python -m pip install tensorflow==2.21.0 tf2onnx==1.17.0
+python backend-node/convert_model_onnx.py
 cd backend-node
 npm install
 npm start
 ```
 
-The conversion creates `models/model_tfjs/model.json` and weight shards. These
-files must be deployed with the Node.js service. The current VPS CPU cannot
-perform the conversion or run the original TensorFlow checkpoint because it
-does not expose AVX/AVX2 instructions.
+The conversion creates `models/model_mobilenet.onnx`. Deploy this file with the
+Node.js service. ONNX Runtime is used because the VPS CPU cannot run native
+TensorFlow binaries.
 
 Configuration:
 
 - `PORT` defaults to `7860`.
 - `HOST` defaults to `0.0.0.0`.
-- `TFJS_MODEL_DIR` can point to another converted model directory.
 - `CORS_ORIGINS` is a comma-separated allowlist; it defaults to allowing all
   origins for initial testing.

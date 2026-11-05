@@ -9,5 +9,3 @@ services:
     envVars:
       - key: CORS_ORIGINS
         value: https://carlos-leo-klasifikasi-kesegaran-buah.static.hf.space
-      - key: TFJS_MODEL_DIR
-        value: /opt/render/project/src/models/model_tfjs

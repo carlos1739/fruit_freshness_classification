@@ -29,11 +29,10 @@ Joni mulai setelah input pipeline siap; Yohanes mengevaluasi model yang sudah di
 README.md
 requirements.txt
 .gitignore
-render.yaml
+render-node.yaml
 .github/workflows/deploy-huggingface-space.yml
 frontend/                 # Flutter Web: upload gambar dan tampilan prediksi
-backend/                  # FastAPI lama dan preprocessing TensorFlow
-backend-node/             # API Node.js untuk model TensorFlow.js
+backend-node/             # API Node.js dengan ONNX Runtime
 models/                   # checkpoint Keras dan metadata kelas (Git LFS)
 notebooks/
   proyek1.ipynb           # EDA, preprocessing, training, dan evaluasi
@@ -90,19 +89,6 @@ Aplikasi memakai Flutter Web untuk antarmuka dan menyediakan API Node.js yang ko
 
 Checkpoint yang saat ini tersimpan adalah **MLP baseline**, dengan akurasi validasi 58,95%. Prediksi merupakan demonstrasi eksperimental dan dapat keliru; jangan menganggapnya sebagai pemeriksaan kualitas pangan yang pasti. Perbarui `models/model_terbaik.keras` dan metadata setelah model final proyek disepakati.
 
-### Jalankan backend Python lama secara lokal
-
-Unduh checkpoint Git LFS, install dependensi, lalu jalankan API:
-
-```powershell
-git lfs install
-git lfs pull --include="models/model_terbaik.keras"
-python -m pip install -r backend/requirements.txt
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 7860
-```
-
-Health check API ada di `http://127.0.0.1:7860/api/health`; endpoint prediksi ada di `/api/predict`.
-
 Untuk mengembangkan Flutter, jalankan backend di port `7860`, kemudian di terminal lain:
 
 ```powershell
@@ -112,7 +98,7 @@ flutter run -d chrome --web-port 5000 --dart-define=API_BASE_URL=http://127.0.0.
 
 ### Jalankan backend Node.js
 
-Node.js memerlukan checkpoint yang sudah dikonversi ke TensorFlow.js. Ikuti
+Node.js memerlukan checkpoint yang sudah dikonversi ke ONNX. Ikuti
 instruksi di [`backend-node/README.md`](backend-node/README.md), lalu jalankan:
 
 ```powershell
@@ -121,9 +107,8 @@ npm install
 npm start
 ```
 
-Konversi model bukan pekerjaan yang dapat dilakukan di VPS saat ini karena CPU
-VPS tidak menyediakan AVX/AVX2 untuk TensorFlow. Setelah `models/model_tfjs/`
-tersedia, frontend dapat diarahkan ke API Node.js dengan
+Konversi model dilakukan di mesin yang memiliki TensorFlow. Setelah
+`models/model_mobilenet.onnx` tersedia, frontend dapat diarahkan ke API Node.js dengan
 `--dart-define=API_BASE_URL=https://URL-API-ANDA`.
 
 ### Hosting: Hugging Face Static + Node.js
@@ -131,7 +116,7 @@ tersedia, frontend dapat diarahkan ke API Node.js dengan
 1. Space `Carlos-leo/klasifikasi-kesegaran-buah` harus **Public** dan memakai SDK **Static**. GitHub Actions membangun Flutter dan mengirim hasil web beserta checkpoint ke Space.
 2. Buat repository GitHub secret `HF_TOKEN` (izin write ke Space) dan `HF_SPACE_ID` dengan nilai `Carlos-leo/klasifikasi-kesegaran-buah`.
 3. Hubungkan repository ini ke layanan Node.js yang dipilih. Contoh konfigurasi Render ada di [`render-node.yaml`](render-node.yaml), tetapi layanan gratis tetap dapat meminta metode pembayaran dan memiliki batas RAM/sleep.
-4. Pastikan hasil konversi `models/model_tfjs/` ikut tersedia pada layanan API. Folder ini diabaikan Git karena ukurannya besar; unggah ke storage/model registry yang dipakai layanan, lalu set `TFJS_MODEL_DIR`.
+4. Pastikan hasil konversi `models/model_mobilenet.onnx` ikut tersedia pada layanan API.
 5. Setelah API memberi URL HTTPS, build frontend dengan `--dart-define=API_BASE_URL=https://URL-API-ANDA`, lalu jalankan workflow **Deploy Flutter Web to Hugging Face Static Space**.
 6. Buka `https://carlos-leo-klasifikasi-kesegaran-buah.static.hf.space`.
 
