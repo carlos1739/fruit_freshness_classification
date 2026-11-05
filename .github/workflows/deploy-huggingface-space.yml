@@ -28,7 +28,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_ID: ${{ secrets.HF_SPACE_ID }}
-          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL || secrets.RENDER_API_URL }}
         run: |
           set -euo pipefail
           if [[ -z "$HF_TOKEN" || -z "$HF_SPACE_ID" ]]; then
@@ -59,7 +59,7 @@ jobs:
 
       - name: Build Flutter web app
         env:
-          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL || secrets.RENDER_API_URL }}
         run: |
           set -euo pipefail
           cd frontend
