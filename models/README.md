@@ -1,9 +1,10 @@
 # Model artifacts
 
 The notebook writes `model_terbaik.keras` and `model_terbaik_info.json` here.
-The Keras checkpoint is tracked with Git LFS so it can be shared with the
-Hugging Face Space and downloaded by the Render API without adding hundreds of
-megabytes to ordinary Git history.
+The best recorded experiment is MobileNetV2 Transfer Learning with validation
+accuracy `0.945263147354126` and test accuracy `0.9411`.
 
-The current local checkpoint is an MLP baseline. The application labels its
-validation accuracy and warns users that its predictions are experimental.
+The deployment backend uses `model_mobilenet.onnx`, generated from the
+MobileNetV2 Keras checkpoint with `backend-node/convert_model_onnx.py`. Large
+model files should be managed with Git LFS or copied to the API host using the
+deployment procedure in the root README.

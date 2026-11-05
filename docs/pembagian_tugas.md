@@ -1,16 +1,22 @@
 # Pembagian Tugas
 
-Pembagian tugas berikut menjadi acuan kerja kelompok. Tugas pemodelan Joni dimulai setelah input pipeline siap, kemudian Yohanes membandingkan model yang sudah dilatih pada data test.
+Pembagian tugas ini mengikuti alur pengerjaan di notebook. Setiap bagian
+disiapkan agar dapat dilanjutkan oleh anggota berikutnya: data diperiksa dan
+dibersihkan terlebih dahulu, kemudian pipeline dibuat, model dilatih, dan
+hasilnya dievaluasi pada tahap akhir.
 
 | Anggota | Tugas |
 |---|---|
-| Carlos Leonardo J. Dongoran | Menyiapkan notebook dan mengerjakan EDA di [`notebooks/proyek1.ipynb`](../notebooks/proyek1.ipynb): memuat dataset, menghitung jumlah gambar per kelas, memeriksa resolusi/format, dan menampilkan contoh gambar (bagian 1-5). |
-| Joni Fernando | Membuat baseline DNN dan model CNN untuk klasifikasi gambar, melatih keduanya menggunakan data train dan validasi, lalu menyimpan model ke `models/` (belum dikerjakan). |
-| Matthew Rivandi | Membuat input pipeline `tf.data`, memeriksa hasil pemuatan/batch, dan menyiapkan demo tensor (bagian 13). |
-| Percaya Mendrova | Mengerjakan praproses data: memeriksa gambar rusak, mendeteksi duplikat, memeriksa ketimpangan kelas, membagi data train/val/test, memeriksa kebocoran, dan menyimpan hasil (bagian 6-12). |
-| Yohanes Cornelius Willfredi Simanjuntak | Membandingkan DNN dan CNN pada data test menggunakan accuracy, precision, recall, F1-score, dan confusion matrix; membuat visualisasi serta ringkasan hasil dan temuan (menunggu model selesai). Data test hanya digunakan untuk evaluasi akhir, bukan untuk memilih model. |
+| Carlos Leonardo J. Dongoran | Menyiapkan notebook dan melakukan eksplorasi awal dataset pada [`notebooks/proyek1.ipynb`](../notebooks/proyek1.ipynb). Pekerjaannya meliputi memuat data, melihat jumlah gambar di setiap kelas, memeriksa resolusi dan format file, serta menampilkan contoh gambar untuk memastikan isi dataset sesuai (bagian 1–5). |
+| Percaya Mendrova | Menyiapkan data sebelum masuk ke model. Ia memeriksa gambar yang rusak, mencari duplikat, melihat keseimbangan kelas, membuat pembagian train/validation/test, memastikan tidak terjadi kebocoran data antar-split, lalu menyimpan hasil praproses (bagian 6–12). |
+| Matthew Rivandi | Membuat input pipeline `tf.data` dari hasil praproses. Ia memastikan gambar dapat dibaca dalam batch, ukuran dan tipe datanya sesuai, augmentasi hanya diterapkan pada data train, serta menyiapkan contoh pemeriksaan tensor (bagian 13). |
+| Joni Fernando | Mengembangkan dan melatih beberapa model klasifikasi, mulai dari baseline DNN/MLP, CNN, hingga model dengan regularisasi dan transfer learning. Setiap model dibandingkan menggunakan data train dan validation, kemudian model terbaik beserta informasinya disimpan di `models/` (bagian 14). |
+| Yohanes Cornelius Willfredi Simanjuntak | Mengevaluasi model terbaik menggunakan data test yang belum dipakai saat pemilihan model. Ia menghitung accuracy, precision, recall, dan F1-score, membuat confusion matrix, lalu merangkum hasil serta kesalahan klasifikasi yang ditemukan (bagian 15). |
 
 ## Koordinasi
 
 - **Ketua/koordinator:** Carlos Leonardo J. Dongoran
+- **Urutan kerja:** EDA → praproses → input pipeline → pelatihan model → evaluasi akhir.
+- **Catatan evaluasi:** data test hanya digunakan setelah model terbaik dipilih,
+  sehingga tidak ikut memengaruhi proses pemilihan model.
 ```
