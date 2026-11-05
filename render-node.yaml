@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: fruit-freshness-api-node
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start --prefix backend-node
+    healthCheckPath: /api/health
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://carlos-leo-klasifikasi-kesegaran-buah.hf.space
+      - key: TFJS_MODEL_DIR
+        value: /opt/render/project/src/models/model_tfjs

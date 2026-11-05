@@ -36,6 +36,10 @@ frontend/build/
 frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
 
+# Node.js backend
+backend-node/node_modules/
+models/model_tfjs/
+
 # OS/editor files
 .DS_Store
 Thumbs.db

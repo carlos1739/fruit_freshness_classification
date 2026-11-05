@@ -32,7 +32,8 @@ requirements.txt
 render.yaml
 .github/workflows/deploy-huggingface-space.yml
 frontend/                 # Flutter Web: upload gambar dan tampilan prediksi
-backend/                  # FastAPI dan preprocessing TensorFlow
+backend/                  # FastAPI lama dan preprocessing TensorFlow
+backend-node/             # API Node.js untuk model TensorFlow.js
 models/                   # checkpoint Keras dan metadata kelas (Git LFS)
 notebooks/
   proyek1.ipynb           # EDA, preprocessing, training, dan evaluasi
@@ -85,11 +86,11 @@ Arsip `Fruits Dataset.zip` perlu tersedia di `data/raw/`. Jalankan sel notebook 
 
 ## Aplikasi web
 
-Aplikasi memakai Flutter Web untuk antarmuka, FastAPI/TensorFlow di Render untuk prediksi, serta Hugging Face Static Space untuk URL frontend publik. Semua source code tetap tersimpan dalam satu repository GitHub.
+Aplikasi memakai Flutter Web untuk antarmuka dan menyediakan API Node.js yang kompatibel dengan frontend. Hugging Face Static Space hanya menyajikan frontend; API Node.js tetap harus dijalankan pada layanan yang mendukung server Node.js.
 
 Checkpoint yang saat ini tersimpan adalah **MLP baseline**, dengan akurasi validasi 58,95%. Prediksi merupakan demonstrasi eksperimental dan dapat keliru; jangan menganggapnya sebagai pemeriksaan kualitas pangan yang pasti. Perbarui `models/model_terbaik.keras` dan metadata setelah model final proyek disepakati.
 
-### Jalankan backend lokal
+### Jalankan backend Python lama secara lokal
 
 Unduh checkpoint Git LFS, install dependensi, lalu jalankan API:
 
@@ -109,14 +110,31 @@ cd frontend
 flutter run -d chrome --web-port 5000 --dart-define=API_BASE_URL=http://127.0.0.1:7860
 ```
 
-### Hosting gratis: Hugging Face Static + Render
+### Jalankan backend Node.js
+
+Node.js memerlukan checkpoint yang sudah dikonversi ke TensorFlow.js. Ikuti
+instruksi di [`backend-node/README.md`](backend-node/README.md), lalu jalankan:
+
+```powershell
+cd backend-node
+npm install
+npm start
+```
+
+Konversi model bukan pekerjaan yang dapat dilakukan di VPS saat ini karena CPU
+VPS tidak menyediakan AVX/AVX2 untuk TensorFlow. Setelah `models/model_tfjs/`
+tersedia, frontend dapat diarahkan ke API Node.js dengan
+`--dart-define=API_BASE_URL=https://URL-API-ANDA`.
+
+### Hosting: Hugging Face Static + Node.js
 
 1. Space `Carlos-leo/klasifikasi-kesegaran-buah` harus **Public** dan memakai SDK **Static**. GitHub Actions membangun Flutter dan mengirim hasil web beserta checkpoint ke Space.
 2. Buat repository GitHub secret `HF_TOKEN` (izin write ke Space) dan `HF_SPACE_ID` dengan nilai `Carlos-leo/klasifikasi-kesegaran-buah`.
-3. Hubungkan repository ini ke Render melalui **New → Blueprint**; Render akan membaca `render.yaml` dan membuat API free web service.
-4. Commit dan push aplikasi serta `models/model_terbaik.keras` via Git LFS ke branch `main`; jalankan workflow **Deploy Flutter Web to Hugging Face Static Space**. Langkah pertama ini mempublikasikan frontend dan checkpoint ke Space; prediksi baru aktif setelah backend tersedia.
-5. Hubungkan repository ini ke Render melalui **New → Blueprint**; Render akan membaca `render.yaml`, mengunduh checkpoint dari Space publik, lalu membuat API free web service.
-6. Setelah Render memberi URL HTTPS, simpan URL itu sebagai GitHub Actions **variable** `RENDER_API_URL` (bukan secret) dan jalankan ulang workflow **Deploy Flutter Web to Hugging Face Static Space**.
-7. Setelah workflow dan Render deploy sukses, buka `https://carlos-leo-klasifikasi-kesegaran-buah.hf.space`.
+3. Hubungkan repository ini ke layanan Node.js yang dipilih. Contoh konfigurasi Render ada di [`render-node.yaml`](render-node.yaml), tetapi layanan gratis tetap dapat meminta metode pembayaran dan memiliki batas RAM/sleep.
+4. Pastikan hasil konversi `models/model_tfjs/` ikut tersedia pada layanan API. Folder ini diabaikan Git karena ukurannya besar; unggah ke storage/model registry yang dipakai layanan, lalu set `TFJS_MODEL_DIR`.
+5. Setelah API memberi URL HTTPS, build frontend dengan `--dart-define=API_BASE_URL=https://URL-API-ANDA`, lalu jalankan workflow **Deploy Flutter Web to Hugging Face Static Space**.
+6. Buka `https://carlos-leo-klasifikasi-kesegaran-buah.hf.space`.
 
-Render Free membatasi service ke 512 MB RAM dan menidurkan service saat tidak dipakai selama 15 menit. Checkpoint model berukuran sekitar 463 MB, sehingga API bisa gagal start atau perlu waktu untuk aktif kembali. Jika terjadi kehabisan memori, backend perlu compute ber-RAM lebih besar; Static Space sendiri tidak dapat menjalankan Python/TensorFlow.
+Hugging Face Static Space tidak menjalankan Node.js, jadi frontend dan API tetap
+merupakan dua proses. Tidak ada opsi hosting gratis yang dapat menjalankan server
+Node.js dan model sekitar 463 MB tanpa batas RAM atau kebijakan layanan.
