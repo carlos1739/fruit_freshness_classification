@@ -14,4 +14,4 @@ services:
       - key: MODEL_REPO_TYPE
         value: space
       - key: CORS_ORIGINS
-        value: https://carlos-leo-klasifikasi-kesegaran-buah.hf.space,http://localhost:5000,http://127.0.0.1:5000
+        value: https://carlos-leo-klasifikasi-kesegaran-buah.static.hf.space,http://localhost:5000,http://127.0.0.1:5000

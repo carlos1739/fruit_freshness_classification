@@ -133,7 +133,7 @@ tersedia, frontend dapat diarahkan ke API Node.js dengan
 3. Hubungkan repository ini ke layanan Node.js yang dipilih. Contoh konfigurasi Render ada di [`render-node.yaml`](render-node.yaml), tetapi layanan gratis tetap dapat meminta metode pembayaran dan memiliki batas RAM/sleep.
 4. Pastikan hasil konversi `models/model_tfjs/` ikut tersedia pada layanan API. Folder ini diabaikan Git karena ukurannya besar; unggah ke storage/model registry yang dipakai layanan, lalu set `TFJS_MODEL_DIR`.
 5. Setelah API memberi URL HTTPS, build frontend dengan `--dart-define=API_BASE_URL=https://URL-API-ANDA`, lalu jalankan workflow **Deploy Flutter Web to Hugging Face Static Space**.
-6. Buka `https://carlos-leo-klasifikasi-kesegaran-buah.hf.space`.
+6. Buka `https://carlos-leo-klasifikasi-kesegaran-buah.static.hf.space`.
 
 Hugging Face Static Space tidak menjalankan Node.js, jadi frontend dan API tetap
 merupakan dua proses. Tidak ada opsi hosting gratis yang dapat menjalankan server
