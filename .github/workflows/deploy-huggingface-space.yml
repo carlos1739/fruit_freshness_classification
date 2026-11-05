@@ -1,0 +1,107 @@
+name: Deploy Flutter Web to Hugging Face Static Space
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "models/model_terbaik.keras"
+      - "models/model_terbaik_info.json"
+      - "models/README.md"
+      - "README.md"
+      - ".github/workflows/deploy-huggingface-space.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Validate deployment settings
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_ID: ${{ secrets.HF_SPACE_ID }}
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$HF_TOKEN" || -z "$HF_SPACE_ID" ]]; then
+            echo "Configure HF_TOKEN and HF_SPACE_ID repository secrets."
+            exit 1
+          fi
+          if [[ ! "$HF_SPACE_ID" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+            echo "HF_SPACE_ID must have the form username/space-name."
+            exit 1
+          fi
+          if [[ -n "$RENDER_API_URL" && ! "$RENDER_API_URL" =~ ^https:// ]]; then
+            echo "RENDER_API_URL must be an HTTPS URL when configured."
+            exit 1
+          fi
+          if [[ ! -s models/model_terbaik.keras || ! -s models/model_terbaik_info.json ]]; then
+            echo "The trained model and metadata must be committed to Git LFS."
+            exit 1
+          fi
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build Flutter web app
+        env:
+          RENDER_API_URL: ${{ vars.RENDER_API_URL }}
+        run: |
+          set -euo pipefail
+          cd frontend
+          flutter pub get
+          flutter build web --release --base-href / \
+            --dart-define=API_BASE_URL="$RENDER_API_URL"
+
+      - name: Publish static app and model to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_ID: ${{ secrets.HF_SPACE_ID }}
+        run: |
+          set -euo pipefail
+          export GIT_LFS_SKIP_SMUDGE=1
+          git clone --branch main \
+            "https://huggingface.co/spaces/${HF_SPACE_ID}" \
+            "$RUNNER_TEMP/hf-space"
+          find "$RUNNER_TEMP/hf-space" -mindepth 1 -maxdepth 1 \
+            ! -name .git -exec rm -rf -- {} +
+          cp README.md "$RUNNER_TEMP/hf-space/README.md"
+          cp -R frontend/build/web/. "$RUNNER_TEMP/hf-space/"
+          mkdir -p "$RUNNER_TEMP/hf-space/models"
+          cp models/model_terbaik.keras models/model_terbaik_info.json \
+            models/README.md "$RUNNER_TEMP/hf-space/models/"
+
+          cd "$RUNNER_TEMP/hf-space"
+          git lfs install
+          git lfs track "models/*.keras"
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "The Hugging Face Space is already up to date."
+            exit 0
+          fi
+          git commit -m "Deploy Flutter web app"
+
+          cat > "$RUNNER_TEMP/hf-askpass.sh" <<'ASKPASS'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf '%s\n' "hf-user" ;;
+            *) printf '%s\n' "$HF_TOKEN" ;;
+          esac
+          ASKPASS
+          chmod 700 "$RUNNER_TEMP/hf-askpass.sh"
+          export GIT_ASKPASS="$RUNNER_TEMP/hf-askpass.sh"
+          export GIT_TERMINAL_PROMPT=0
+          git remote set-url origin "https://huggingface.co/spaces/${HF_SPACE_ID}"
+          git push origin HEAD:main

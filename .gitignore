@@ -10,6 +10,7 @@ env/
 .env
 .env.*
 !.env.example
+.cache/
 
 # Jupyter temporary files
 .ipynb_checkpoints/
@@ -25,6 +26,15 @@ data/processed/*
 !data/processed/bobot_kelas.json
 models/*
 !models/.gitkeep
+!models/README.md
+!models/model_terbaik.keras
+!models/model_terbaik_info.json
+
+# Flutter build files
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
 
 # OS/editor files
 .DS_Store

@@ -1,0 +1,33 @@
+{
+  "percobaan": "1. MLP (baseline)",
+  "nama_model_keras": "mlp_baseline",
+  "akurasi_val": 0.5894736647605896,
+  "loss_val": 1.254014492034912,
+  "epoch_terbaik": 9,
+  "jumlah_parameter": 38570384,
+  "bentuk_input": [
+    224,
+    224,
+    3
+  ],
+  "normalisasi_input": "piksel dibagi 255 (rentang 0-1); tidak ada lapisan Rescaling di dalam model",
+  "nama_kelas": {
+    "0": "Busuk Anggur",
+    "1": "Busuk Apel",
+    "2": "Busuk Bidara",
+    "3": "Busuk Delima",
+    "4": "Busuk Jambu biji",
+    "5": "Busuk Jeruk",
+    "6": "Busuk Pisang",
+    "7": "Busuk Stroberi",
+    "8": "Segar Anggur",
+    "9": "Segar Apel",
+    "10": "Segar Bidara",
+    "11": "Segar Delima",
+    "12": "Segar Jambu biji",
+    "13": "Segar Jeruk",
+    "14": "Segar Pisang",
+    "15": "Segar Stroberi"
+  },
+  "benih_acak": 42
+}
