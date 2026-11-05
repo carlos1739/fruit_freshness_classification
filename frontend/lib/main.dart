@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
+import 'image_picker.dart';
 
 const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const _green = Color(0xFF176B4D);
@@ -54,9 +55,9 @@ class Prediction {
 }
 
 class _SelectedImage {
-  const _SelectedImage({required this.file, required this.bytes});
+  const _SelectedImage({required this.name, required this.bytes});
 
-  final PlatformFile file;
+  final String name;
   final Uint8List bytes;
 }
 
@@ -81,16 +82,14 @@ class _ClassifierPageState extends State<ClassifierPage> {
 
   Future<void> _pickImage() async {
     try {
-      final files = await FilePicker.pickFiles(type: FileType.image);
-      if (files.isEmpty) return;
-      final file = files.first;
-
-      final size = await file.length() ?? 0;
+      final file = await pickImage();
+      if (file == null) return;
+      final size = file.bytes.length;
       if (size > 10 * 1024 * 1024) {
         _setError('Ukuran gambar maksimal 10 MB.');
         return;
       }
-      final bytes = await file.readAsBytes();
+      final bytes = file.bytes;
       if (bytes.isEmpty) {
         _setError(
           'Gambar tidak dapat dibaca. Coba pilih file JPG atau PNG lain.',
@@ -100,7 +99,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
 
       if (!mounted) return;
       setState(() {
-        _selectedImage = _SelectedImage(file: file, bytes: bytes);
+        _selectedImage = _SelectedImage(name: file.name, bytes: bytes);
         _predictions = const [];
         _errorMessage = null;
       });
@@ -130,7 +129,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
           http.MultipartFile.fromBytes(
             'file',
             image.bytes,
-            filename: image.file.name,
+            filename:             image.name,
           ),
         );
       final streamed = await request.send().timeout(const Duration(minutes: 2));
@@ -351,7 +350,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
           if (_selectedImage != null) ...[
             const SizedBox(height: 10),
             Text(
-              _selectedImage!.file.name,
+              _selectedImage!.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
