@@ -1,10 +1,10 @@
 {
-  "percobaan": "1. MLP (baseline)",
-  "nama_model_keras": "mlp_baseline",
-  "akurasi_val": 0.5894736647605896,
-  "loss_val": 1.254014492034912,
-  "epoch_terbaik": 9,
-  "jumlah_parameter": 38570384,
+  "percobaan": "5. MobileNetV2 Transfer Learning",
+  "nama_model_keras": "mobilenetv2_transfer",
+  "akurasi_val": 0.945263147354126,
+  "loss_val": 0.28453928232192993,
+  "epoch_terbaik": 20,
+  "jumlah_parameter": 2278480,
   "bentuk_input": [
     224,
     224,
