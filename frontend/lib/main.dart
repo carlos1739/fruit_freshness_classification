@@ -80,29 +80,32 @@ class _ClassifierPageState extends State<ClassifierPage> {
       : Uri.parse('$_apiBaseUrl/api/predict');
 
   Future<void> _pickImage() async {
-    final file = await FilePicker.pickFile(type: FileType.image);
-    if (file == null) return;
+    try {
+      final file = await FilePicker.pickFile(type: FileType.image);
+      if (file == null) return;
 
-    final size = await file.length();
-    if (size == null) {
-      setState(() {
-        _errorMessage = 'Gambar tidak dapat dibaca. Coba pilih file lain.';
-      });
-      return;
-    }
-    if (size > 10 * 1024 * 1024) {
-      setState(() {
-        _errorMessage = 'Ukuran gambar maksimal 10 MB.';
-      });
-      return;
-    }
-    final bytes = await file.readAsBytes();
+      final size = await file.length() ?? 0;
+      if (size > 10 * 1024 * 1024) {
+        _setError('Ukuran gambar maksimal 10 MB.');
+        return;
+      }
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        _setError(
+          'Gambar tidak dapat dibaca. Coba pilih file JPG atau PNG lain.',
+        );
+        return;
+      }
 
-    setState(() {
-      _selectedImage = _SelectedImage(file: file, bytes: bytes);
-      _predictions = const [];
-      _errorMessage = null;
-    });
+      if (!mounted) return;
+      setState(() {
+        _selectedImage = _SelectedImage(file: file, bytes: bytes);
+        _predictions = const [];
+        _errorMessage = null;
+      });
+    } on Object catch (error) {
+      _setError('Gagal memilih gambar: $error');
+    }
   }
 
   Future<void> _predict() async {
@@ -129,9 +132,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
             filename: image.file.name,
           ),
         );
-      final streamed = await request.send().timeout(
-            const Duration(minutes: 2),
-          );
+      final streamed = await request.send().timeout(const Duration(minutes: 2));
       final response = await http.Response.fromStream(streamed);
       final decoded = jsonDecode(response.body);
 
@@ -140,19 +141,22 @@ class _ClassifierPageState extends State<ClassifierPage> {
             ? decoded['detail']
             : null;
         throw _ApiException(
-          detail is String ? detail : 'Prediksi gagal (${response.statusCode}).',
+          detail is String
+              ? detail
+              : 'Prediksi gagal (${response.statusCode}).',
         );
       }
       if (decoded is! Map<String, dynamic> ||
           decoded['top_predictions'] is! List) {
-        throw const FormatException('Respons prediksi dari server tidak valid.');
+        throw const FormatException(
+          'Respons prediksi dari server tidak valid.',
+        );
       }
 
       final results = (decoded['top_predictions'] as List)
           .map(
-            (item) => Prediction.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
+            (item) =>
+                Prediction.fromJson(Map<String, dynamic>.from(item as Map)),
           )
           .toList();
       final accuracy = decoded['validation_accuracy'];
@@ -161,8 +165,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
       setState(() {
         _predictions = results;
         _modelName = decoded['model'] as String?;
-        _validationAccuracy =
-            accuracy is num ? accuracy.toDouble() : null;
+        _validationAccuracy = accuracy is num ? accuracy.toDouble() : null;
       });
     } on TimeoutException {
       _setError('Server terlalu lama merespons. Coba lagi sebentar lagi.');
@@ -359,8 +362,8 @@ class _ClassifierPageState extends State<ClassifierPage> {
             onPressed: _isLoading
                 ? null
                 : _selectedImage == null
-                    ? _pickImage
-                    : _predict,
+                ? _pickImage
+                : _predict,
             icon: _isLoading
                 ? const SizedBox(
                     width: 18,
@@ -376,8 +379,8 @@ class _ClassifierPageState extends State<ClassifierPage> {
               _isLoading
                   ? 'Sedang menganalisis...'
                   : _selectedImage == null
-                      ? 'Pilih foto'
-                      : 'Analisis gambar',
+                  ? 'Pilih foto'
+                  : 'Analisis gambar',
             ),
             style: FilledButton.styleFrom(
               backgroundColor: _green,
@@ -426,8 +429,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
             _buildMessage(
               icon: Icons.search_rounded,
               color: _green,
-              message:
-                  'Hasil prediksi akan muncul di sini setelah gambar dianalisis.',
+              message: 'Hasil prediksi akan muncul di sini setelah gambar dianalisis.',
             ),
         ],
       ),
@@ -455,10 +457,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
                 ),
                 child: Text(
                   '${index + 1}',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 10),
