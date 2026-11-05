@@ -81,8 +81,9 @@ class _ClassifierPageState extends State<ClassifierPage> {
 
   Future<void> _pickImage() async {
     try {
-      final file = await FilePicker.pickFile(type: FileType.image);
-      if (file == null) return;
+      final files = await FilePicker.pickFiles(type: FileType.image);
+      if (files.isEmpty) return;
+      final file = files.first;
 
       final size = await file.length() ?? 0;
       if (size > 10 * 1024 * 1024) {
