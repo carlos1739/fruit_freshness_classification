@@ -9,7 +9,7 @@ Node.js cannot load `models/model_terbaik.keras` directly. Convert it once on a
 machine that can run TensorFlow:
 
 ```powershell
-python -m pip install tensorflow tensorflowjs
+python -m pip install tensorflow==2.21.0 tensorflowjs==4.22.0
 python backend-node/convert_model.py
 cd backend-node
 npm install
