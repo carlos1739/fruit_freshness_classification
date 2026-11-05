@@ -1,6 +1,6 @@
 # Flutter Web frontend
 
-The frontend lets a user choose a fruit image, uploads it to the FastAPI
+The frontend lets a user choose a fruit image, uploads it to the Node.js
 backend, and displays the model's three most likely classes.
 
 Hugging Face Static Space serves the compiled Flutter app, and the API is hosted
