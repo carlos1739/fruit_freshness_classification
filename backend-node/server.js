@@ -41,19 +41,24 @@ async function loadTfjsModel() {
     await fs.readFile(path.join(MODEL_DIR, "model.json"), "utf8"),
   );
   const modelTopology = modelJson.modelTopology;
-  const layers = modelTopology?.model_config?.config?.layers;
-  if (Array.isArray(layers)) {
-    for (const layer of layers) {
-      if (
-        layer.class_name === "InputLayer" &&
-        layer.config?.batch_shape &&
-        !layer.config.batchInputShape
-      ) {
-        layer.config.batchInputShape = layer.config.batch_shape;
-        delete layer.config.batch_shape;
-      }
+  const normalizeInputLayers = (value) => {
+    if (Array.isArray(value)) {
+      value.forEach(normalizeInputLayers);
+      return;
     }
-  }
+    if (!value || typeof value !== "object") return;
+
+    if (
+      value.class_name === "InputLayer" &&
+      value.config?.batch_shape &&
+      !value.config.batchInputShape
+    ) {
+      value.config.batchInputShape = value.config.batch_shape;
+      delete value.config.batch_shape;
+    }
+    Object.values(value).forEach(normalizeInputLayers);
+  };
+  normalizeInputLayers(modelTopology);
   const weightSpecs = modelJson.weightsManifest.flatMap((manifest) =>
     manifest.weights,
   );
