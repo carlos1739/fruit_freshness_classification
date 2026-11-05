@@ -14,6 +14,7 @@ const IMAGE_SIZE = 224;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 20_000_000;
 const TOP_K = 3;
+const MIN_FRUIT_CONFIDENCE = 0.6;
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGINS ?? "*")
@@ -126,6 +127,13 @@ app.post("/api/predict", upload.single("file"), async (request, response) => {
     const indices = Array.from(probabilities.keys())
       .sort((left, right) => probabilities[right] - probabilities[left])
       .slice(0, TOP_K);
+    const topConfidence = Number(probabilities[indices[0]]);
+    if (topConfidence < MIN_FRUIT_CONFIDENCE) {
+      return response.status(422).json({
+        detail:
+          "Gambar yang diunggah bukan buah yang dikenali. Silakan unggah foto buah.",
+      });
+    }
     return response.json({
       model: classifier.info.percobaan ?? "Fruit classifier",
       validation_accuracy: classifier.info.akurasi_val,
