@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'image_picker.dart';
@@ -11,6 +11,8 @@ const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const _green = Color(0xFF176B4D);
 const _ink = Color(0xFF20352D);
 const _paper = Color(0xFFF6F8F3);
+const _historyStorageKey = 'fruit_freshness_prediction_history';
+const _maxHistoryEntries = 10;
 
 void main() {
   runApp(const FruitFreshnessApp());
@@ -44,6 +46,11 @@ class Prediction {
   final String label;
   final double confidence;
 
+  Map<String, Object> toJson() => {
+    'class_name': label,
+    'confidence': confidence,
+  };
+
   factory Prediction.fromJson(Map<String, dynamic> json) {
     final label = json['class_name'];
     final confidence = json['confidence'];
@@ -51,6 +58,53 @@ class Prediction {
       throw const FormatException('Format hasil prediksi tidak dikenali.');
     }
     return Prediction(label: label, confidence: confidence.toDouble());
+  }
+}
+
+class _HistoryEntry {
+  const _HistoryEntry({
+    required this.filename,
+    required this.createdAt,
+    required this.model,
+    required this.predictions,
+  });
+
+  final String filename;
+  final DateTime createdAt;
+  final String model;
+  final List<Prediction> predictions;
+
+  Map<String, Object> toJson() => {
+    'filename': filename,
+    'created_at': createdAt.toIso8601String(),
+    'model': model,
+    'predictions': predictions
+        .map((prediction) => prediction.toJson())
+        .toList(),
+  };
+
+  factory _HistoryEntry.fromJson(Map<String, dynamic> json) {
+    final filename = json['filename'];
+    final createdAt = json['created_at'];
+    final model = json['model'];
+    final predictions = json['predictions'];
+    if (filename is! String ||
+        createdAt is! String ||
+        model is! String ||
+        predictions is! List) {
+      throw const FormatException('Format riwayat prediksi tidak dikenali.');
+    }
+    return _HistoryEntry(
+      filename: filename,
+      createdAt: DateTime.parse(createdAt),
+      model: model,
+      predictions: predictions
+          .map(
+            (item) =>
+                Prediction.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList(),
+    );
   }
 }
 
@@ -75,14 +129,85 @@ class _ClassifierPageState extends State<ClassifierPage> {
   String? _modelName;
   double? _validationAccuracy;
   bool _isLoading = false;
+  bool? _apiOnline;
+  bool _checkingApi = false;
+  List<_HistoryEntry> _history = const [];
 
   Uri get _predictionUri => _apiBaseUrl.isEmpty
       ? Uri.base.resolve('api/predict')
       : Uri.parse('$_apiBaseUrl/api/predict');
 
-  Future<void> _pickImage() async {
+  Uri get _healthUri => _apiBaseUrl.isEmpty
+      ? Uri.base.resolve('api/health')
+      : Uri.parse('$_apiBaseUrl/api/health');
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadHistory());
+    unawaited(_checkApiStatus());
+  }
+
+  Future<void> _loadHistory() async {
     try {
-      final file = await pickImage();
+      final saved = await readStoredValue(_historyStorageKey);
+      if (saved == null || saved.isEmpty) return;
+      final decoded = jsonDecode(saved);
+      if (decoded is! List) {
+        throw const FormatException('Data riwayat harus berupa daftar.');
+      }
+      final entries = decoded
+          .map(
+            (item) =>
+                _HistoryEntry.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .take(_maxHistoryEntries)
+          .toList();
+      if (mounted) setState(() => _history = entries);
+    } on Object catch (error) {
+      _showSnackBar('Riwayat gagal dibaca: $error');
+    }
+  }
+
+  Future<void> _persistHistory() async {
+    try {
+      await writeStoredValue(
+        _historyStorageKey,
+        jsonEncode(_history.map((entry) => entry.toJson()).toList()),
+      );
+    } on Object catch (error) {
+      _showSnackBar('Riwayat gagal disimpan: $error');
+    }
+  }
+
+  Future<void> _checkApiStatus() async {
+    if (mounted) setState(() => _checkingApi = true);
+    try {
+      final response = await http
+          .get(_healthUri)
+          .timeout(const Duration(seconds: 8));
+      final body = jsonDecode(response.body);
+      final online =
+          response.statusCode == 200 &&
+          body is Map<String, dynamic> &&
+          body['status'] == 'ok';
+      if (mounted) setState(() => _apiOnline = online);
+    } on Object {
+      if (mounted) setState(() => _apiOnline = false);
+    } finally {
+      if (mounted) setState(() => _checkingApi = false);
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _pickImage({bool captureFromCamera = false}) async {
+    try {
+      final file = await pickImage(captureFromCamera: captureFromCamera);
       if (file == null) return;
       final size = file.bytes.length;
       if (size > 10 * 1024 * 1024) {
@@ -108,6 +233,194 @@ class _ClassifierPageState extends State<ClassifierPage> {
     }
   }
 
+  Future<void> _useDemoImage() async {
+    try {
+      final data = await rootBundle.load('assets/demo_fresh_apple.jpg');
+      if (!mounted) return;
+      setState(() {
+        _selectedImage = _SelectedImage(
+          name: 'Contoh dataset - apel segar',
+          bytes: data.buffer.asUint8List(
+            data.offsetInBytes,
+            data.lengthInBytes,
+          ),
+        );
+        _predictions = const [];
+        _errorMessage = null;
+      });
+      await _predict();
+    } on Object catch (error) {
+      _setError('Gambar contoh tidak dapat dimuat: $error');
+    }
+  }
+
+  void _resetCurrent() {
+    setState(() {
+      _selectedImage = null;
+      _predictions = const [];
+      _errorMessage = null;
+      _modelName = null;
+      _validationAccuracy = null;
+    });
+  }
+
+  Future<void> _downloadReport() async {
+    if (_predictions.isEmpty || _selectedImage == null) {
+      _showSnackBar('Analisis gambar terlebih dahulu untuk mengunduh laporan.');
+      return;
+    }
+    String csvValue(String value) => '"${value.replaceAll('"', '""')}"';
+    final generatedAt = DateTime.now();
+    final lines = <String>[
+      'waktu,nama_file,model,akurasi_validasi,peringkat,label,confidence',
+    ];
+    for (var index = 0; index < _predictions.length; index++) {
+      final prediction = _predictions[index];
+      lines.add(
+        [
+          csvValue(generatedAt.toIso8601String()),
+          csvValue(_selectedImage!.name),
+          csvValue(_modelName ?? 'Model klasifikasi'),
+          _validationAccuracy?.toStringAsFixed(4) ?? '',
+          '${index + 1}',
+          csvValue(prediction.label),
+          prediction.confidence.toStringAsFixed(6),
+        ].join(','),
+      );
+    }
+    final filename =
+        'hasil-prediksi-${generatedAt.toIso8601String().replaceAll(':', '-').split('.').first}.csv';
+    try {
+      await downloadTextFile(filename, '\uFEFF${lines.join('\r\n')}');
+    } on Object catch (error) {
+      _showSnackBar('Laporan gagal diunduh: $error');
+    }
+  }
+
+  void _showAboutModel() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Tentang model'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _InfoLine(
+                label: 'Arsitektur',
+                value: 'MobileNetV2 transfer learning',
+              ),
+              _InfoLine(label: 'Ukuran input', value: '224 × 224 piksel'),
+              _InfoLine(
+                label: 'Kanal warna',
+                value: 'RGB, 3 kanal (bukan BGR)',
+              ),
+              _InfoLine(
+                label: 'Normalisasi',
+                value: 'Nilai piksel 0–1 (dibagi 255)',
+              ),
+              _InfoLine(
+                label: 'Kelas',
+                value: '16 kelas: 8 jenis buah, segar/busuk',
+              ),
+              _InfoLine(
+                label: 'Akurasi validasi',
+                value: '94,53% pada eksperimen tercatat',
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Model hanya dilatih dengan kelas buah. Gambar non-buah tetap '
+                'dapat memperoleh label buah, jadi hasil bukan pemeriksaan '
+                'keamanan pangan.',
+                style: TextStyle(height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHistory() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            const Expanded(child: Text('Riwayat prediksi')),
+            if (_history.isNotEmpty)
+              IconButton(
+                tooltip: 'Hapus semua riwayat',
+                onPressed: () {
+                  setState(() => _history = const []);
+                  unawaited(_persistHistory());
+                  Navigator.of(dialogContext).pop();
+                },
+                icon: const Icon(Icons.delete_outline),
+              ),
+          ],
+        ),
+        content: SizedBox(
+          width: 440,
+          child: _history.isEmpty
+              ? const Text('Belum ada hasil prediksi tersimpan.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _history.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final entry = _history[index];
+                    final top = entry.predictions.isEmpty
+                        ? null
+                        : entry.predictions.first;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.image_outlined),
+                      ),
+                      title: Text(
+                        entry.filename,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${_formatDate(entry.createdAt)}'
+                        '${top == null ? '' : '\n${top.label} · ${(top.confidence * 100).toStringAsFixed(1)}%'}',
+                      ),
+                      isThreeLine: top != null,
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    final local = dateTime.toLocal();
+    final date =
+        '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+    final time =
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+    return '$date $time';
+  }
+
   Future<void> _predict() async {
     final image = _selectedImage;
     if (image == null) {
@@ -129,7 +442,7 @@ class _ClassifierPageState extends State<ClassifierPage> {
           http.MultipartFile.fromBytes(
             'file',
             image.bytes,
-            filename:             image.name,
+            filename: image.name,
           ),
         );
       final streamed = await request.send().timeout(const Duration(minutes: 2));
@@ -167,6 +480,19 @@ class _ClassifierPageState extends State<ClassifierPage> {
         _modelName = decoded['model'] as String?;
         _validationAccuracy = accuracy is num ? accuracy.toDouble() : null;
       });
+      final historyEntry = _HistoryEntry(
+        filename: image.name,
+        createdAt: DateTime.now(),
+        model: _modelName ?? 'Model klasifikasi',
+        predictions: results,
+      );
+      setState(() {
+        _history = [
+          historyEntry,
+          ..._history,
+        ].take(_maxHistoryEntries).toList();
+      });
+      await _persistHistory();
     } on TimeoutException {
       _setError('Server terlalu lama merespons. Coba lagi sebentar lagi.');
     } on http.ClientException {
@@ -197,6 +523,8 @@ class _ClassifierPageState extends State<ClassifierPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildHeader(),
+                  const SizedBox(height: 16),
+                  _buildToolbar(),
                   const SizedBox(height: 28),
                   LayoutBuilder(
                     builder: (context, constraints) {
@@ -270,6 +598,59 @@ class _ClassifierPageState extends State<ClassifierPage> {
     );
   }
 
+  Widget _buildToolbar() {
+    final statusColor = _apiOnline == true
+        ? _green
+        : _apiOnline == false
+        ? const Color(0xFFB3261E)
+        : Colors.black54;
+    final statusText = _checkingApi
+        ? 'Memeriksa API'
+        : _apiOnline == true
+        ? 'API online'
+        : _apiOnline == false
+        ? 'API offline'
+        : 'Status API belum diketahui';
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        Chip(
+          avatar: _checkingApi
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(Icons.circle, size: 12, color: statusColor),
+          label: Text(statusText),
+          visualDensity: VisualDensity.compact,
+        ),
+        IconButton.outlined(
+          tooltip: 'Periksa status API',
+          onPressed: _checkingApi ? null : _checkApiStatus,
+          icon: const Icon(Icons.refresh),
+        ),
+        OutlinedButton.icon(
+          onPressed: _isLoading ? null : _useDemoImage,
+          icon: const Icon(Icons.science_outlined),
+          label: const Text('Coba contoh'),
+        ),
+        OutlinedButton.icon(
+          onPressed: _showAboutModel,
+          icon: const Icon(Icons.info_outline),
+          label: const Text('Tentang model'),
+        ),
+        OutlinedButton.icon(
+          onPressed: _showHistory,
+          icon: const Icon(Icons.history),
+          label: Text('Riwayat (${_history.length})'),
+        ),
+      ],
+    );
+  }
+
   Widget _buildUploadPanel() {
     return _panel(
       title: '1. Pilih gambar',
@@ -331,33 +712,80 @@ class _ClassifierPageState extends State<ClassifierPage> {
             ),
           ],
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _isLoading
-                ? null
-                : _selectedImage == null
-                ? _pickImage
-                : _predict,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    _selectedImage == null
-                        ? Icons.upload_rounded
-                        : Icons.auto_awesome,
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : _selectedImage == null
+                      ? _pickImage
+                      : _predict,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _selectedImage == null
+                              ? Icons.upload_rounded
+                              : Icons.auto_awesome,
+                        ),
+                  label: Text(
+                    _isLoading
+                        ? 'Sedang menganalisis...'
+                        : _selectedImage == null
+                        ? 'Pilih foto'
+                        : 'Analisis gambar',
                   ),
-            label: Text(
-              _isLoading
-                  ? 'Sedang menganalisis...'
-                  : _selectedImage == null
-                  ? 'Pilih foto'
-                  : 'Analisis gambar',
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _green,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+              if (cameraCaptureAvailable) ...[
+                const SizedBox(width: 4),
+                IconButton.outlined(
+                  tooltip: 'Ambil foto dengan kamera',
+                  onPressed: _isLoading
+                      ? null
+                      : () => _pickImage(captureFromCamera: true),
+                  icon: const Icon(Icons.camera_alt_outlined),
+                ),
+              ],
+              if (_selectedImage != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Reset gambar',
+                  onPressed: _isLoading ? null : _resetCurrent,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2F1E8),
+              borderRadius: BorderRadius.circular(14),
             ),
-            style: FilledButton.styleFrom(
-              backgroundColor: _green,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.lightbulb_outline, color: _green),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tips: foto buah dengan jelas, pencahayaan cukup, dan '
+                    'buah memenuhi sebagian besar gambar. Hasil tetap berupa '
+                    'prediksi model.',
+                    style: TextStyle(color: _ink, height: 1.4),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -398,6 +826,14 @@ class _ClassifierPageState extends State<ClassifierPage> {
             const SizedBox(height: 18),
             for (var index = 0; index < _predictions.length; index++)
               _buildPredictionRow(_predictions[index], index),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _downloadReport,
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Unduh laporan CSV'),
+              ),
+            ),
           ] else
             _buildMessage(
               icon: Icons.search_rounded,
@@ -522,4 +958,32 @@ class _ApiException implements Exception {
   const _ApiException(this.message);
 
   final String message;
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(label, style: const TextStyle(color: Colors.black54)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(color: _ink, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
 }

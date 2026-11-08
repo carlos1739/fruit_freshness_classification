@@ -12,11 +12,14 @@ class PickedImage {
   final Uint8List bytes;
 }
 
-Future<PickedImage?> pickImage() async {
+bool get cameraCaptureAvailable => true;
+
+Future<PickedImage?> pickImage({bool captureFromCamera = false}) async {
   final input = html.FileUploadInputElement()
     ..accept = 'image/*'
     ..multiple = false
     ..style.display = 'none';
+  if (captureFromCamera) input.setAttribute('capture', 'environment');
   html.document.body?.append(input);
 
   try {
@@ -43,5 +46,29 @@ Future<PickedImage?> pickImage() async {
     );
   } finally {
     input.remove();
+  }
+}
+
+Future<String?> readStoredValue(String key) async =>
+    html.window.localStorage[key];
+
+Future<void> writeStoredValue(String key, String value) async {
+  html.window.localStorage[key] = value;
+}
+
+Future<void> downloadTextFile(String filename, String content) async {
+  final blob = html.Blob([
+    Uint8List.fromList(utf8.encode(content)),
+  ], 'text/csv;charset=utf-8');
+  final url = html.Url.createObjectUrlFromBlob(blob);
+  try {
+    final link = html.AnchorElement(href: url)
+      ..download = filename
+      ..style.display = 'none';
+    html.document.body?.append(link);
+    link.click();
+    link.remove();
+  } finally {
+    html.Url.revokeObjectUrl(url);
   }
 }
