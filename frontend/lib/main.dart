@@ -796,51 +796,54 @@ class _ClassifierPageState extends State<ClassifierPage> {
   Widget _buildResultPanel() {
     return _panel(
       title: '2. Hasil prediksi',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 72),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_errorMessage != null)
-            _buildMessage(
-              icon: Icons.error_outline,
-              color: const Color(0xFFB3261E),
-              message: _errorMessage!,
-            )
-          else if (_predictions.isNotEmpty) ...[
-            Text(
-              _modelName ?? 'Model klasifikasi',
-              style: const TextStyle(color: Colors.black54, fontSize: 13),
-            ),
-            if (_validationAccuracy != null) ...[
-              const SizedBox(height: 4),
+      child: SizedBox(
+        height: _predictions.isEmpty ? 340 : null,
+        child: Column(
+          mainAxisAlignment: _predictions.isEmpty
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (_errorMessage != null)
+              _buildMessage(
+                icon: Icons.error_outline,
+                color: const Color(0xFFB3261E),
+                message: _errorMessage!,
+              )
+            else if (_predictions.isNotEmpty) ...[
               Text(
-                'Akurasi validasi model: '
-                '${(_validationAccuracy! * 100).toStringAsFixed(2)}%',
-                style: const TextStyle(color: Colors.black54, fontSize: 12),
+                _modelName ?? 'Model klasifikasi',
+                style: const TextStyle(color: Colors.black54, fontSize: 13),
               ),
-            ],
-            const SizedBox(height: 18),
-            for (var index = 0; index < _predictions.length; index++)
-              _buildPredictionRow(_predictions[index], index),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _downloadReport,
-                icon: const Icon(Icons.download_outlined),
-                label: const Text('Unduh laporan CSV'),
+              if (_validationAccuracy != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Akurasi validasi model: '
+                  '${(_validationAccuracy! * 100).toStringAsFixed(2)}%',
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                ),
+              ],
+              const SizedBox(height: 18),
+              for (var index = 0; index < _predictions.length; index++)
+                _buildPredictionRow(_predictions[index], index),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _downloadReport,
+                  icon: const Icon(Icons.download_outlined),
+                  label: const Text('Unduh laporan CSV'),
+                ),
               ),
-            ),
-          ] else
-            _buildMessage(
-              icon: Icons.search_rounded,
-              color: _green,
-              message: 'Hasil prediksi akan muncul di sini setelah gambar dianalisis.',
-            ),
-        ],
+            ] else
+              _buildMessage(
+                icon: Icons.search_rounded,
+                color: _green,
+                message: 'Hasil prediksi akan muncul di sini setelah gambar dianalisis.',
+              ),
+          ],
+        ),
       ),
     );
   }
