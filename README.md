@@ -131,9 +131,10 @@ API menyediakan:
 - `GET /api/health` untuk memeriksa kesiapan model.
 - `POST /api/predict` dengan field multipart `file` untuk prediksi.
 
-Backend menolak gambar yang confidence tertingginya di bawah 60% dengan pesan
-bahwa gambar bukan buah yang dikenali. Ambang ini adalah heuristik karena model
-tidak dilatih dengan kelas khusus `bukan buah`.
+Backend selalu menampilkan tiga prediksi teratas beserta confidence-nya, tanpa
+ambang minimum 60%. Model dilatih hanya dengan kelas buah, sehingga gambar
+non-buah tetap dapat memperoleh label buah; confidence rendah bukan bukti pasti
+bahwa gambar tersebut bukan buah.
 
 ## Alur notebook
 
@@ -366,13 +367,13 @@ Evaluasi pada data test menghasilkan accuracy 94,11% dengan macro F1-score
 
 Model ini kemudian digunakan pada API Node.js melalui ONNX Runtime dan
 diakses oleh frontend Flutter Web. Karena data training hanya berisi kelas
-buah, kemampuan mendeteksi gambar bukan buah di aplikasi menggunakan heuristik
-confidence dan bukan kelas non-buah yang dilatih secara khusus.
+buah, aplikasi menampilkan kelas buah dengan confidence tertinggi sekalipun
+confidence-nya rendah; model belum memiliki kelas khusus untuk gambar non-buah.
 
 ## Rekomendasi
 
-1. Tambahkan dataset non-buah dan latih kelas `bukan buah` agar penolakan input
-   memiliki dasar model, bukan hanya threshold confidence.
+1. Tambahkan dataset non-buah dan latih kelas `bukan buah` agar sistem dapat
+   memprediksi kelas non-buah secara langsung.
 2. Evaluasi pada foto dari kondisi pencahayaan, kamera, dan latar belakang yang
    lebih beragam.
 3. Simpan versi dataset, konfigurasi, dan environment setiap eksperimen agar

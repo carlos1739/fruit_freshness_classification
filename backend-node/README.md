@@ -27,6 +27,7 @@ Configuration:
 - `CORS_ORIGINS` is a comma-separated allowlist; it defaults to allowing all
   origins for initial testing.
 
-Images whose highest class confidence is below 60% are rejected as not being a
-recognized fruit. This is a heuristic because the model was trained only on
-fruit classes and has no dedicated non-fruit class.
+The API always returns the three highest-scoring predictions without a minimum
+confidence threshold. The model was trained only on fruit classes, so a
+non-fruit image can still receive a fruit label; low confidence alone does not
+prove that an image is not fruit.
