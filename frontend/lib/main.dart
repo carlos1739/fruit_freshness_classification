@@ -129,23 +129,16 @@ class _ClassifierPageState extends State<ClassifierPage> {
   String? _modelName;
   double? _validationAccuracy;
   bool _isLoading = false;
-  bool? _apiOnline;
-  bool _checkingApi = false;
   List<_HistoryEntry> _history = const [];
 
   Uri get _predictionUri => _apiBaseUrl.isEmpty
       ? Uri.base.resolve('api/predict')
       : Uri.parse('$_apiBaseUrl/api/predict');
 
-  Uri get _healthUri => _apiBaseUrl.isEmpty
-      ? Uri.base.resolve('api/health')
-      : Uri.parse('$_apiBaseUrl/api/health');
-
   @override
   void initState() {
     super.initState();
     unawaited(_loadHistory());
-    unawaited(_checkApiStatus());
   }
 
   Future<void> _loadHistory() async {
@@ -177,25 +170,6 @@ class _ClassifierPageState extends State<ClassifierPage> {
       );
     } on Object catch (error) {
       _showSnackBar('Riwayat gagal disimpan: $error');
-    }
-  }
-
-  Future<void> _checkApiStatus() async {
-    if (mounted) setState(() => _checkingApi = true);
-    try {
-      final response = await http
-          .get(_healthUri)
-          .timeout(const Duration(seconds: 8));
-      final body = jsonDecode(response.body);
-      final online =
-          response.statusCode == 200 &&
-          body is Map<String, dynamic> &&
-          body['status'] == 'ok';
-      if (mounted) setState(() => _apiOnline = online);
-    } on Object {
-      if (mounted) setState(() => _apiOnline = false);
-    } finally {
-      if (mounted) setState(() => _checkingApi = false);
     }
   }
 
@@ -599,39 +573,11 @@ class _ClassifierPageState extends State<ClassifierPage> {
   }
 
   Widget _buildToolbar() {
-    final statusColor = _apiOnline == true
-        ? _green
-        : _apiOnline == false
-        ? const Color(0xFFB3261E)
-        : Colors.black54;
-    final statusText = _checkingApi
-        ? 'Memeriksa API'
-        : _apiOnline == true
-        ? 'API online'
-        : _apiOnline == false
-        ? 'API offline'
-        : 'Status API belum diketahui';
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 8,
       runSpacing: 8,
       children: [
-        Chip(
-          avatar: _checkingApi
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(Icons.circle, size: 12, color: statusColor),
-          label: Text(statusText),
-          visualDensity: VisualDensity.compact,
-        ),
-        IconButton.outlined(
-          tooltip: 'Periksa status API',
-          onPressed: _checkingApi ? null : _checkApiStatus,
-          icon: const Icon(Icons.refresh),
-        ),
         OutlinedButton.icon(
           onPressed: _isLoading ? null : _useDemoImage,
           icon: const Icon(Icons.science_outlined),
